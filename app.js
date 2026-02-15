@@ -50,7 +50,12 @@ const state = {
   isOnline: navigator.onLine,
   undoStack: [],
   theme: localStorage.getItem('theme') || 'dark',
-  userDropdownOpen: false
+  userDropdownOpen: false,
+  /** @type {{ status: string, priority: string }} */
+  listFilters: {
+    status: 'all',
+    priority: 'all'
+  }
 };
 
 /**
@@ -781,12 +786,17 @@ function createTaskCard(task) {
  * LIST VIEW
  */
 
-/** Render the list view with sorted tasks */
+/** Render the list view with sorted and filtered tasks */
 function renderListView() {
   const listContent = document.getElementById('list-content');
   
+  // Apply filters
+  const { status, priority } = state.listFilters;
+  
   const sortedTasks = [...state.tasks]
     .filter(t => !t.parentId)
+    .filter(t => status === 'all' || t.status === status)
+    .filter(t => priority === 'all' || t.priority === priority)
     .sort((a, b) => {
       if (a.dueDate && !b.dueDate) return -1;
       if (!a.dueDate && b.dueDate) return 1;
@@ -800,7 +810,13 @@ function renderListView() {
       return a.order - b.order;
     });
 
-  if (sortedTasks.length === 0) {
+  // Update filter summary
+  updateFilterSummary(sortedTasks.length);
+
+  const totalParentTasks = state.tasks.filter(t => !t.parentId).length;
+  const hasFiltersActive = status !== 'all' || priority !== 'all';
+
+  if (totalParentTasks === 0) {
     listContent.innerHTML = `
       <div class="list-empty">
         <div class="list-empty__icon">📋</div>
@@ -811,11 +827,62 @@ function renderListView() {
     return;
   }
 
+  if (sortedTasks.length === 0 && hasFiltersActive) {
+    listContent.innerHTML = `
+      <div class="list-empty">
+        <div class="list-empty__icon">🔍</div>
+        <div class="list-empty__title">No matching tasks</div>
+        <div class="list-empty__description">Try adjusting your filters to see more tasks</div>
+      </div>
+    `;
+    return;
+  }
+
   listContent.innerHTML = '';
   sortedTasks.forEach(task => {
     const item = createListItem(task);
     listContent.appendChild(item);
   });
+}
+
+/**
+ * Update filter chip active states to reflect current filter state
+ */
+function syncFilterChipUI() {
+  // Status chips
+  document.querySelectorAll('#status-filters .filter-chip').forEach(chip => {
+    chip.classList.toggle('filter-chip--active', chip.dataset.status === state.listFilters.status);
+  });
+  // Priority chips
+  document.querySelectorAll('#priority-filters .filter-chip').forEach(chip => {
+    chip.classList.toggle('filter-chip--active', chip.dataset.priority === state.listFilters.priority);
+  });
+}
+
+/**
+ * Update the filter summary text showing result count and clear button
+ * @param {number} count - Number of visible tasks after filtering
+ */
+function updateFilterSummary(count) {
+  const summary = document.getElementById('active-filter-summary');
+  const countEl = document.getElementById('filter-count');
+  const hasFilters = state.listFilters.status !== 'all' || state.listFilters.priority !== 'all';
+  
+  summary.hidden = !hasFilters;
+  if (hasFilters) {
+    const total = state.tasks.filter(t => !t.parentId).length;
+    countEl.textContent = `Showing ${count} of ${total} tasks`;
+  }
+}
+
+/**
+ * Reset all list filters to "all"
+ */
+function clearListFilters() {
+  state.listFilters.status = 'all';
+  state.listFilters.priority = 'all';
+  syncFilterChipUI();
+  renderListView();
 }
 
 function createListItem(task) {
@@ -1381,6 +1448,27 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     switchView(btn.dataset.view);
   });
 });
+
+// List view filters - Status
+document.getElementById('status-filters').addEventListener('click', (e) => {
+  const chip = e.target.closest('.filter-chip');
+  if (!chip) return;
+  state.listFilters.status = chip.dataset.status;
+  syncFilterChipUI();
+  renderListView();
+});
+
+// List view filters - Priority
+document.getElementById('priority-filters').addEventListener('click', (e) => {
+  const chip = e.target.closest('.filter-chip');
+  if (!chip) return;
+  state.listFilters.priority = chip.dataset.priority;
+  syncFilterChipUI();
+  renderListView();
+});
+
+// Clear all list filters
+document.getElementById('clear-filters-btn').addEventListener('click', clearListFilters);
 
 // Theme toggle
 elements.themeToggle.addEventListener('click', toggleTheme);

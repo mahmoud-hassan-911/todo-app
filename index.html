@@ -216,6 +216,38 @@
             <!-- List View -->
             <div id="list-view" class="view view--list" hidden>
                 <div class="list-container">
+                    <!-- Filter Bar -->
+                    <div class="list-filters">
+                        <div class="list-filters__group">
+                            <label class="list-filters__label">Status</label>
+                            <div class="filter-chips" id="status-filters">
+                                <button class="filter-chip filter-chip--active" data-status="all">All</button>
+                                <button class="filter-chip" data-status="backlog">Backlog</button>
+                                <button class="filter-chip" data-status="today">Today</button>
+                                <button class="filter-chip" data-status="inprogress">In Progress</button>
+                                <button class="filter-chip" data-status="done">Done</button>
+                            </div>
+                        </div>
+                        <div class="list-filters__group">
+                            <label class="list-filters__label">Priority</label>
+                            <div class="filter-chips" id="priority-filters">
+                                <button class="filter-chip filter-chip--active" data-priority="all">All</button>
+                                <button class="filter-chip" data-priority="high">
+                                    <span class="filter-chip__dot filter-chip__dot--high"></span>High
+                                </button>
+                                <button class="filter-chip" data-priority="normal">
+                                    <span class="filter-chip__dot filter-chip__dot--normal"></span>Normal
+                                </button>
+                                <button class="filter-chip" data-priority="low">
+                                    <span class="filter-chip__dot filter-chip__dot--low"></span>Low
+                                </button>
+                            </div>
+                        </div>
+                        <div id="active-filter-summary" class="list-filters__summary" hidden>
+                            <span id="filter-count"></span>
+                            <button id="clear-filters-btn" class="filter-clear-btn">Clear filters</button>
+                        </div>
+                    </div>
                     <div id="list-content" class="list"></div>
                 </div>
             </div>
