@@ -9,8 +9,8 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "icons/icon-192.png",
-      "sizes": "192x192",
+      "src": "icons/icon-128.png",
+      "sizes": "128x128",
       "type": "image/png",
       "purpose": "any maskable"
     },
@@ -28,7 +28,7 @@
       "short_name": "Add",
       "description": "Quickly add a new task",
       "url": "/?action=add",
-      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "icons/icon-128.png", "sizes": "128x128" }]
     }
   ]
 }
