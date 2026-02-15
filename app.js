@@ -10,7 +10,10 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import {
   getFirestore,
@@ -46,7 +49,8 @@ const state = {
   unsubscribe: null,
   isOnline: navigator.onLine,
   undoStack: [],
-  theme: localStorage.getItem('theme') || 'dark'
+  theme: localStorage.getItem('theme') || 'dark',
+  userDropdownOpen: false
 };
 
 /**
@@ -71,26 +75,44 @@ const elements = {
   taskModal: document.getElementById('task-modal'),
   commandPalette: document.getElementById('command-palette'),
   toastContainer: document.getElementById('toast-container'),
-  themeToggle: document.getElementById('theme-toggle')
+  themeToggle: document.getElementById('theme-toggle'),
+  // User profile elements
+  userProfileBtn: document.getElementById('user-profile-btn'),
+  userDropdown: document.getElementById('user-dropdown'),
+  userAvatar: document.getElementById('user-avatar'),
+  userDisplayName: document.getElementById('user-display-name'),
+  dropdownEmail: document.getElementById('dropdown-email'),
+  changePasswordBtn: document.getElementById('change-password-btn'),
+  // Password modal elements
+  passwordModal: document.getElementById('password-modal'),
+  passwordForm: document.getElementById('password-form'),
+  currentPasswordInput: document.getElementById('current-password'),
+  newPasswordInput: document.getElementById('new-password'),
+  confirmPasswordInput: document.getElementById('confirm-password'),
+  passwordError: document.getElementById('password-error'),
+  passwordSuccess: document.getElementById('password-success'),
+  savePasswordBtn: document.getElementById('save-password-btn'),
+  cancelPasswordBtn: document.getElementById('cancel-password-btn')
 };
 
 /**
  * AUTHENTICATION
  */
 
-// Show/Hide Auth Modal
+/** Show the auth modal */
 function showAuthModal() {
   elements.authModal.hidden = false;
   elements.authEmail.focus();
 }
 
+/** Hide the auth modal */
 function hideAuthModal() {
   elements.authModal.hidden = true;
   elements.authError.hidden = true;
   elements.authForm.reset();
 }
 
-// Handle Login
+/** Handle user login */
 async function handleLogin(email, password) {
   try {
     await signInWithEmailAndPassword(auth, email, password);
@@ -100,7 +122,7 @@ async function handleLogin(email, password) {
   }
 }
 
-// Handle Signup
+/** Handle user signup */
 async function handleSignup(email, password) {
   try {
     await createUserWithEmailAndPassword(auth, email, password);
@@ -111,7 +133,7 @@ async function handleSignup(email, password) {
   }
 }
 
-// Handle Logout
+/** Handle user logout */
 async function handleLogout() {
   try {
     if (state.unsubscribe) {
@@ -122,6 +144,7 @@ async function handleLogout() {
     state.tasks = [];
     state.user = null;
     elements.app.hidden = true;
+    closeUserDropdown();
     showAuthModal();
     showToast('Signed out successfully', 'info');
   } catch (error) {
@@ -129,13 +152,13 @@ async function handleLogout() {
   }
 }
 
-// Show Auth Error
+/** Show auth error message */
 function showAuthError(message) {
   elements.authError.textContent = message;
   elements.authError.hidden = false;
 }
 
-// Get friendly error message
+/** Get friendly error message for auth errors */
 function getAuthErrorMessage(code) {
   const messages = {
     'auth/email-already-in-use': 'This email is already registered.',
@@ -151,12 +174,154 @@ function getAuthErrorMessage(code) {
   return messages[code] || 'An error occurred. Please try again.';
 }
 
+/**
+ * Update the user profile display in the header
+ * @param {Object} user - Firebase user object
+ */
+function updateUserDisplay(user) {
+  if (!user) return;
+  
+  const email = user.email || '';
+  const initial = email.charAt(0).toUpperCase();
+  const displayName = user.displayName || email.split('@')[0];
+  
+  elements.userAvatar.textContent = initial;
+  elements.userDisplayName.textContent = displayName;
+  elements.dropdownEmail.textContent = email;
+}
+
+/**
+ * USER DROPDOWN
+ */
+
+/** Toggle the user dropdown menu */
+function toggleUserDropdown() {
+  state.userDropdownOpen = !state.userDropdownOpen;
+  elements.userDropdown.hidden = !state.userDropdownOpen;
+  elements.userProfileBtn.setAttribute('aria-expanded', state.userDropdownOpen);
+}
+
+/** Close the user dropdown menu */
+function closeUserDropdown() {
+  state.userDropdownOpen = false;
+  elements.userDropdown.hidden = true;
+  elements.userProfileBtn.setAttribute('aria-expanded', 'false');
+}
+
+/**
+ * CHANGE PASSWORD
+ */
+
+/** Open the password change modal */
+function openPasswordModal() {
+  closeUserDropdown();
+  elements.passwordModal.hidden = false;
+  elements.passwordForm.reset();
+  elements.passwordError.hidden = true;
+  elements.passwordSuccess.hidden = true;
+  elements.currentPasswordInput.focus();
+}
+
+/** Close the password change modal */
+function closePasswordModal() {
+  elements.passwordModal.hidden = true;
+  elements.passwordForm.reset();
+  elements.passwordError.hidden = true;
+  elements.passwordSuccess.hidden = true;
+}
+
+/** Show password modal error */
+function showPasswordError(message) {
+  elements.passwordError.textContent = message;
+  elements.passwordError.hidden = false;
+  elements.passwordSuccess.hidden = true;
+}
+
+/** Show password modal success */
+function showPasswordSuccess(message) {
+  elements.passwordSuccess.textContent = message;
+  elements.passwordSuccess.hidden = false;
+  elements.passwordError.hidden = true;
+}
+
+/**
+ * Handle password change
+ * Re-authenticates the user, then updates their password.
+ */
+async function handleChangePassword() {
+  const currentPassword = elements.currentPasswordInput.value;
+  const newPassword = elements.newPasswordInput.value;
+  const confirmPassword = elements.confirmPasswordInput.value;
+  
+  // Validation
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    showPasswordError('Please fill in all fields.');
+    return;
+  }
+  
+  if (newPassword.length < 6) {
+    showPasswordError('New password must be at least 6 characters.');
+    return;
+  }
+  
+  if (newPassword !== confirmPassword) {
+    showPasswordError('New passwords do not match.');
+    return;
+  }
+  
+  if (currentPassword === newPassword) {
+    showPasswordError('New password must be different from current password.');
+    return;
+  }
+  
+  // Disable button during operation
+  elements.savePasswordBtn.disabled = true;
+  elements.savePasswordBtn.textContent = 'Updating...';
+  
+  try {
+    const user = auth.currentUser;
+    const credential = EmailAuthProvider.credential(user.email, currentPassword);
+    
+    // Re-authenticate first
+    await reauthenticateWithCredential(user, credential);
+    
+    // Update password
+    await updatePassword(user, newPassword);
+    
+    showPasswordSuccess('Password updated successfully!');
+    elements.passwordForm.reset();
+    
+    // Auto-close after a moment
+    setTimeout(() => {
+      closePasswordModal();
+      showToast('Password updated successfully', 'success');
+    }, 1500);
+    
+  } catch (error) {
+    let message = 'Failed to update password.';
+    if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      message = 'Current password is incorrect.';
+    } else if (error.code === 'auth/weak-password') {
+      message = 'New password is too weak. Use at least 6 characters.';
+    } else if (error.code === 'auth/requires-recent-login') {
+      message = 'Please sign out and sign back in, then try again.';
+    } else if (error.code === 'auth/too-many-requests') {
+      message = 'Too many attempts. Please try again later.';
+    }
+    showPasswordError(message);
+  } finally {
+    elements.savePasswordBtn.disabled = false;
+    elements.savePasswordBtn.textContent = 'Update Password';
+  }
+}
+
 // Auth State Observer
 onAuthStateChanged(auth, (user) => {
   if (user) {
     state.user = user;
     elements.app.hidden = false;
     hideAuthModal();
+    updateUserDisplay(user);
     startApp();
   } else {
     state.user = null;
@@ -169,14 +334,14 @@ onAuthStateChanged(auth, (user) => {
  * FIRESTORE DATA LAYER
  */
 
-// Initialize app after auth
+/** Initialize app after auth */
 function startApp() {
   loadTasks();
   renderCurrentView();
   initializeSortable();
 }
 
-// Load tasks with realtime sync
+/** Load tasks with realtime sync via onSnapshot */
 function loadTasks() {
   if (state.unsubscribe) {
     state.unsubscribe();
@@ -204,7 +369,11 @@ function loadTasks() {
   );
 }
 
-// Create task
+/**
+ * Create a new task in Firestore
+ * @param {Object} taskData - Task data fields
+ * @returns {string|null} Document ID or null on failure
+ */
 async function createTask(taskData) {
   if (!state.isOnline) {
     showToast('Cannot create task while offline', 'warning');
@@ -242,7 +411,12 @@ async function createTask(taskData) {
   }
 }
 
-// Update task
+/**
+ * Update an existing task
+ * @param {string} taskId - Firestore document ID
+ * @param {Object} updates - Fields to update
+ * @returns {boolean} Success status
+ */
 async function updateTask(taskId, updates) {
   if (!state.isOnline) {
     showToast('Cannot update task while offline', 'warning');
@@ -251,8 +425,6 @@ async function updateTask(taskId, updates) {
 
   try {
     const taskRef = doc(db, 'tasks', taskId);
-    
-    // Get old data for undo
     const oldTask = state.tasks.find(t => t.id === taskId);
     
     await updateDoc(taskRef, {
@@ -260,7 +432,6 @@ async function updateTask(taskId, updates) {
       updatedAt: serverTimestamp()
     });
 
-    // Add to undo stack
     if (oldTask) {
       addToUndoStack({
         type: 'update',
@@ -278,7 +449,11 @@ async function updateTask(taskId, updates) {
   }
 }
 
-// Delete task
+/**
+ * Delete a task and its subtasks
+ * @param {string} taskId - Firestore document ID
+ * @returns {boolean} Success status
+ */
 async function deleteTask(taskId) {
   if (!state.isOnline) {
     showToast('Cannot delete task while offline', 'warning');
@@ -287,8 +462,6 @@ async function deleteTask(taskId) {
 
   try {
     const taskRef = doc(db, 'tasks', taskId);
-    
-    // Get task data for undo
     const task = state.tasks.find(t => t.id === taskId);
     
     // Delete subtasks first
@@ -299,7 +472,6 @@ async function deleteTask(taskId) {
     
     await deleteDoc(taskRef);
 
-    // Add to undo stack
     if (task) {
       addToUndoStack({
         type: 'delete',
@@ -323,10 +495,7 @@ async function deleteTask(taskId) {
  */
 
 function addToUndoStack(action) {
-  // Keep only last action
   state.undoStack = [action];
-  
-  // Show undo toast
   showUndoToast(action);
 }
 
@@ -336,10 +505,10 @@ function showUndoToast(action) {
     'update': 'Task updated',
     'delete': 'Task deleted'
   };
-  
   showToast(messages[action.type] || 'Action completed', 'info', false, true);
 }
 
+/** Perform undo of last action */
 async function performUndo() {
   if (state.undoStack.length === 0) {
     showToast('Nothing to undo', 'info');
@@ -366,9 +535,7 @@ async function performUndo() {
         break;
         
       case 'delete':
-        // Recreate task
         await addDoc(collection(db, 'tasks'), action.data);
-        // Recreate subtasks
         if (action.subtasks) {
           for (const subtask of action.subtasks) {
             await addDoc(collection(db, 'tasks'), subtask);
@@ -385,8 +552,10 @@ async function performUndo() {
 
 /**
  * QUICK INPUT PARSER
+ * Parses natural language input to extract task fields.
+ * @param {string} input - Raw input text
+ * @returns {Object} Parsed task data
  */
-
 function parseQuickInput(input) {
   const taskData = {
     text: input,
@@ -410,7 +579,7 @@ function parseQuickInput(input) {
     taskData.text = taskData.text.replace(/!(high|low)/gi, '').trim();
   }
 
-  // Extract date (today, tomorrow, in X days, specific date with time)
+  // Extract date (today, tomorrow, in X days)
   const dateMatch = input.match(/\b(today|tomorrow|in\s+(\d+)\s+days?)\b/i);
   if (dateMatch) {
     const now = new Date();
@@ -455,6 +624,7 @@ function parseQuickInput(input) {
 
 let sortableInstances = {};
 
+/** Initialize SortableJS instances for each column */
 function initializeSortable() {
   const columns = ['backlog', 'today', 'inprogress', 'done'];
   
@@ -479,6 +649,9 @@ function initializeSortable() {
       scrollSpeed: 15,
       bubbleScroll: true,
       disabled: !state.isOnline,
+      delay: 120,
+      delayOnTouchOnly: true,
+      touchStartThreshold: 5,
       
       onEnd: async (evt) => {
         if (!state.isOnline) return;
@@ -487,7 +660,7 @@ function initializeSortable() {
         const newStatus = evt.to.dataset.sortable;
         const newIndex = evt.newIndex;
 
-        // Calculate new order
+        // Calculate new order using fractional ordering
         const tasksInColumn = state.tasks
           .filter(t => t.status === newStatus && !t.parentId)
           .sort((a, b) => a.order - b.order);
@@ -505,7 +678,6 @@ function initializeSortable() {
           newOrder = (prev + next) / 2;
         }
 
-        // Update task
         await updateTask(taskId, {
           status: newStatus,
           order: newOrder
@@ -515,6 +687,7 @@ function initializeSortable() {
   });
 }
 
+/** Render all Kanban columns */
 function renderKanbanView() {
   const columns = ['backlog', 'today', 'inprogress', 'done'];
   
@@ -536,12 +709,16 @@ function renderKanbanView() {
   });
 }
 
+/**
+ * Create a task card DOM element
+ * @param {Object} task - Task data
+ * @returns {HTMLElement} Card element
+ */
 function createTaskCard(task) {
   const card = document.createElement('div');
   card.className = 'task-card';
   card.dataset.taskId = task.id;
   
-  // Priority badge
   let priorityBadge = '';
   if (task.priority !== 'normal') {
     const icons = { high: '🔴', low: '🔵' };
@@ -552,7 +729,6 @@ function createTaskCard(task) {
     `;
   }
 
-  // Due date
   let dueDateHtml = '';
   if (task.dueDate) {
     const dueDate = new Date(task.dueDate);
@@ -565,39 +741,28 @@ function createTaskCard(task) {
     if (due < today) dueDateClass += ' task-card__due--overdue';
     else if (due.getTime() === today.getTime()) dueDateClass += ' task-card__due--today';
     
-    dueDateHtml = `
-      <span class="${dueDateClass}">
-        📅 ${formatDate(dueDate)}
-      </span>
-    `;
+    dueDateHtml = `<span class="${dueDateClass}">📅 ${formatDate(dueDate)}</span>`;
   }
 
-  // Tags
   let tagsHtml = '';
   if (task.tags && task.tags.length > 0) {
     tagsHtml = `
       <div class="task-card__tags">
-        ${task.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+        ${task.tags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
       </div>
     `;
   }
 
-  // Subtasks
   const subtasks = state.tasks.filter(t => t.parentId === task.id);
   let subtasksHtml = '';
   if (subtasks.length > 0) {
     const completedCount = subtasks.filter(t => t.status === 'done').length;
-    subtasksHtml = `
-      <span class="task-card__subtasks">
-        ✓ ${completedCount}/${subtasks.length}
-      </span>
-    `;
+    subtasksHtml = `<span class="task-card__subtasks">✓ ${completedCount}/${subtasks.length}</span>`;
   }
 
   card.innerHTML = `
     <div class="task-card__header">
       <div class="task-card__title">${escapeHtml(task.text)}</div>
-      ${task.description ? `<div class="task-card__description">${escapeHtml(task.description)}</div>` : ''}
     </div>
     <div class="task-card__meta">
       ${priorityBadge}
@@ -616,27 +781,22 @@ function createTaskCard(task) {
  * LIST VIEW
  */
 
+/** Render the list view with sorted tasks */
 function renderListView() {
   const listContent = document.getElementById('list-content');
   
-  // Sort tasks: dueDate ASC (nulls last) → priority (high→low) → order
   const sortedTasks = [...state.tasks]
     .filter(t => !t.parentId)
     .sort((a, b) => {
-      // Due date
       if (a.dueDate && !b.dueDate) return -1;
       if (!a.dueDate && b.dueDate) return 1;
       if (a.dueDate && b.dueDate) {
         const dateCompare = new Date(a.dueDate) - new Date(b.dueDate);
         if (dateCompare !== 0) return dateCompare;
       }
-      
-      // Priority
       const priorityOrder = { high: 0, normal: 1, low: 2 };
       const priorityCompare = priorityOrder[a.priority] - priorityOrder[b.priority];
       if (priorityCompare !== 0) return priorityCompare;
-      
-      // Order
       return a.order - b.order;
     });
 
@@ -676,14 +836,13 @@ function createListItem(task) {
 
   let tagsHtml = '';
   if (task.tags && task.tags.length > 0) {
-    tagsHtml = task.tags.map(tag => `<span class="tag">${tag}</span>`).join('');
+    tagsHtml = task.tags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('');
   }
 
   item.innerHTML = `
     <div class="list-item__drag">⋮⋮</div>
     <div class="list-item__content">
       <div class="list-item__title">${escapeHtml(task.text)}</div>
-      ${task.description ? `<div class="list-item__description">${escapeHtml(task.description)}</div>` : ''}
       <div class="list-item__meta">
         <span class="status-badge status-badge--${task.status}">${statusLabels[task.status]}</span>
         <span class="priority-badge priority-badge--${task.priority}">${task.priority}</span>
@@ -691,7 +850,6 @@ function createListItem(task) {
         ${tagsHtml}
       </div>
     </div>
-    <div class="list-item__status"></div>
   `;
 
   item.addEventListener('click', () => openTaskModal(task));
@@ -721,7 +879,6 @@ function renderCalendarGrid() {
   const grid = document.getElementById('calendar-grid');
   grid.innerHTML = '';
 
-  // Day headers
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   dayNames.forEach(day => {
     const header = document.createElement('div');
@@ -730,22 +887,19 @@ function renderCalendarGrid() {
     grid.appendChild(header);
   });
 
-  // Get calendar days
   const year = currentCalendarDate.getFullYear();
   const month = currentCalendarDate.getMonth();
   const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
   const startDate = new Date(firstDay);
   startDate.setDate(startDate.getDate() - startDate.getDay());
 
   const days = [];
   const currentDate = new Date(startDate);
-  while (days.length < 42) { // 6 weeks
+  while (days.length < 42) {
     days.push(new Date(currentDate));
     currentDate.setDate(currentDate.getDate() + 1);
   }
 
-  // Render day cells
   days.forEach(date => {
     const cell = createCalendarDay(date, month);
     grid.appendChild(cell);
@@ -764,7 +918,6 @@ function createCalendarDay(date, currentMonth) {
 
   const dateStr = date.toISOString().split('T')[0];
   
-  // Get tasks for this day
   const tasksOnDay = state.tasks.filter(task => {
     if (!task.dueDate || task.parentId) return false;
     const taskDate = new Date(task.dueDate).toISOString().split('T')[0];
@@ -773,10 +926,10 @@ function createCalendarDay(date, currentMonth) {
 
   let tasksHtml = '';
   if (tasksOnDay.length > 0) {
-    if (tasksOnDay.length <= 3) {
+    if (tasksOnDay.length <= 2) {
       tasksHtml = `
         <div class="calendar__tasks">
-          ${tasksOnDay.slice(0, 3).map(task => `
+          ${tasksOnDay.map(task => `
             <div class="calendar__task calendar__task--priority-${task.priority}" 
                  data-task-id="${task.id}">
               ${escapeHtml(task.text)}
@@ -800,7 +953,6 @@ function createCalendarDay(date, currentMonth) {
       const task = state.tasks.find(t => t.id === taskId);
       if (task) openTaskModal(task);
     } else if (!isOtherMonth) {
-      // Click to set due date for quick-add
       const input = elements.quickInput.value.trim();
       if (input) {
         const taskData = parseQuickInput(input);
@@ -808,7 +960,7 @@ function createCalendarDay(date, currentMonth) {
         createTask(taskData);
         elements.quickInput.value = '';
       } else {
-        showToast(`Click on a day to set due date for new tasks`, 'info');
+        showToast('Type a task name first, then click a day to set due date', 'info');
       }
     }
   });
@@ -830,20 +982,15 @@ function openTaskModal(task = null) {
   state.selectedTask = task;
   
   if (task) {
-    // Edit mode
     document.getElementById('task-title-input').value = task.text || '';
     document.getElementById('task-description').value = task.description || '';
     document.getElementById('task-status').value = task.status || 'backlog';
     document.getElementById('task-priority').value = task.priority || 'normal';
     document.getElementById('task-duedate').value = task.dueDate ? task.dueDate.split('T')[0] : '';
     document.getElementById('task-tags').value = task.tags ? task.tags.join(', ') : '';
-    
-    // Load subtasks
     renderSubtasks();
-    
     document.getElementById('delete-task-btn').hidden = false;
   } else {
-    // Create mode
     document.getElementById('task-title-input').value = '';
     document.getElementById('task-description').value = '';
     document.getElementById('task-status').value = 'backlog';
@@ -883,11 +1030,9 @@ async function saveTaskFromModal() {
   };
 
   if (state.selectedTask) {
-    // Update existing
     await updateTask(state.selectedTask.id, taskData);
     showToast('Task updated', 'success');
   } else {
-    // Create new
     await createTask(taskData);
   }
 
@@ -955,6 +1100,7 @@ const commands = [
   { id: 'list', icon: '📝', title: 'List View', description: 'Switch to List view' },
   { id: 'calendar', icon: '📅', title: 'Calendar View', description: 'Switch to Calendar view' },
   { id: 'toggle-theme', icon: '🎨', title: 'Toggle Theme', description: 'Switch between dark and light mode' },
+  { id: 'change-password', icon: '🔒', title: 'Change Password', description: 'Update your password' },
   { id: 'undo', icon: '↶', title: 'Undo', description: 'Undo last action', shortcut: 'Ctrl+Z' }
 ];
 
@@ -1007,6 +1153,9 @@ function executeCommand(commandId) {
     case 'toggle-theme':
       toggleTheme();
       break;
+    case 'change-password':
+      openPasswordModal();
+      break;
     case 'undo':
       performUndo();
       break;
@@ -1021,17 +1170,14 @@ function executeCommand(commandId) {
 function switchView(view) {
   state.currentView = view;
   
-  // Update nav buttons
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.setAttribute('aria-pressed', btn.dataset.view === view);
   });
 
-  // Hide all views
   elements.kanbanView.hidden = true;
   elements.listView.hidden = true;
   elements.calendarView.hidden = true;
 
-  // Show current view
   switch (view) {
     case 'kanban':
       elements.kanbanView.hidden = false;
@@ -1058,12 +1204,21 @@ function renderCurrentView() {
 
 function toggleTheme() {
   state.theme = state.theme === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', state.theme);
+  applyTheme(state.theme);
   localStorage.setItem('theme', state.theme);
 }
 
-// Initialize theme
-document.documentElement.setAttribute('data-theme', state.theme);
+/** Apply theme to the document */
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  
+  // Update theme-color meta tag
+  const themeColor = theme === 'dark' ? '#0f172a' : '#f8fafc';
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColor);
+}
+
+// Initialize theme on load
+applyTheme(state.theme);
 
 /**
  * OFFLINE DETECTION
@@ -1073,7 +1228,6 @@ function updateOnlineStatus() {
   state.isOnline = navigator.onLine;
   elements.offlineBanner.hidden = state.isOnline;
   
-  // Disable sortable when offline
   Object.values(sortableInstances).forEach(instance => {
     instance.option('disabled', !state.isOnline);
   });
@@ -1131,28 +1285,24 @@ function showToast(message, type = 'info', showRetry = false, showUndo = false) 
 
   elements.toastContainer.appendChild(toast);
 
-  // Close button
   toast.querySelector('.toast__close').addEventListener('click', () => {
     removeToast(toast);
   });
 
-  // Undo button
   if (showUndo) {
     const undoBtn = toast.querySelector('.toast__btn--undo');
     undoBtn.addEventListener('click', () => {
       performUndo();
       removeToast(toast);
     });
-    
-    // Auto-remove after 6 seconds
     setTimeout(() => removeToast(toast), 6000);
   } else {
-    // Auto-remove after 4 seconds
     setTimeout(() => removeToast(toast), 4000);
   }
 }
 
 function removeToast(toast) {
+  if (!toast.parentElement) return;
   toast.classList.add('toast--removing');
   setTimeout(() => toast.remove(), 300);
 }
@@ -1169,14 +1319,16 @@ function escapeHtml(text) {
 
 function formatDate(date) {
   const now = new Date();
-  const diff = date - now;
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  now.setHours(0, 0, 0, 0);
+  const target = new Date(date);
+  target.setHours(0, 0, 0, 0);
+  const diff = Math.round((target - now) / (1000 * 60 * 60 * 24));
   
-  if (days === 0) return 'Today';
-  if (days === 1) return 'Tomorrow';
-  if (days === -1) return 'Yesterday';
-  if (days < 0) return `${Math.abs(days)} days ago`;
-  if (days < 7) return `In ${days} days`;
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Tomorrow';
+  if (diff === -1) return 'Yesterday';
+  if (diff < 0) return `${Math.abs(diff)}d ago`;
+  if (diff < 7) return `In ${diff}d`;
   
   const month = date.toLocaleString('default', { month: 'short' });
   const day = date.getDate();
@@ -1233,6 +1385,38 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
 // Theme toggle
 elements.themeToggle.addEventListener('click', toggleTheme);
 
+// User profile dropdown
+elements.userProfileBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleUserDropdown();
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  if (state.userDropdownOpen && !e.target.closest('#user-dropdown') && !e.target.closest('#user-profile-btn')) {
+    closeUserDropdown();
+  }
+});
+
+// Change password button in dropdown
+elements.changePasswordBtn.addEventListener('click', openPasswordModal);
+
+// Password modal events
+elements.savePasswordBtn.addEventListener('click', handleChangePassword);
+elements.cancelPasswordBtn.addEventListener('click', closePasswordModal);
+
+// Close password modal via overlay
+elements.passwordModal.querySelector('.modal__overlay').addEventListener('click', closePasswordModal);
+elements.passwordModal.querySelector('.password-modal__close').addEventListener('click', closePasswordModal);
+
+// Submit password form on Enter
+elements.confirmPasswordInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    handleChangePassword();
+  }
+});
+
 // Task modal
 document.querySelector('.task-modal__close').addEventListener('click', closeTaskModal);
 document.getElementById('save-task-btn').addEventListener('click', saveTaskFromModal);
@@ -1288,7 +1472,7 @@ document.getElementById('palette-results').addEventListener('click', (e) => {
 
 // Modal overlays
 elements.authModal.querySelector('.modal__overlay').addEventListener('click', () => {
-  // Don't close auth modal by clicking overlay (user must sign in)
+  // Don't close auth modal by clicking overlay
 });
 
 elements.taskModal.querySelector('.modal__overlay').addEventListener('click', closeTaskModal);
@@ -1302,28 +1486,30 @@ document.addEventListener('keydown', (e) => {
     elements.quickInput.focus();
   }
   
-  // N - New task
-  if (e.key === 'n' && !e.target.matches('input, textarea')) {
+  // N - New task (only when not in input)
+  if (e.key === 'n' && !e.target.matches('input, textarea, select')) {
     e.preventDefault();
     elements.quickInput.focus();
   }
   
-  // Esc - Close modals
+  // Esc - Close modals/dropdown
   if (e.key === 'Escape') {
-    if (!elements.taskModal.hidden) closeTaskModal();
-    if (!elements.commandPalette.hidden) closeCommandPalette();
+    if (state.userDropdownOpen) { closeUserDropdown(); return; }
+    if (!elements.passwordModal.hidden) { closePasswordModal(); return; }
+    if (!elements.taskModal.hidden) { closeTaskModal(); return; }
+    if (!elements.commandPalette.hidden) { closeCommandPalette(); return; }
   }
   
   // Ctrl/Cmd + P or / - Command palette
   if (((e.ctrlKey || e.metaKey) && e.key === 'p') || e.key === '/') {
-    if (!e.target.matches('input, textarea')) {
+    if (!e.target.matches('input, textarea, select')) {
       e.preventDefault();
       openCommandPalette();
     }
   }
   
   // Ctrl/Cmd + Z - Undo
-  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.target.matches('input, textarea')) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.target.matches('input, textarea, select')) {
     e.preventDefault();
     performUndo();
   }

@@ -4,8 +4,8 @@
 
 .task-card {
   position: relative;
-  padding: var(--space-4);
-  margin-bottom: var(--space-3);
+  padding: var(--space-3);
+  margin-bottom: var(--space-2);
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -14,6 +14,9 @@
               box-shadow var(--duration-fast) var(--ease-out),
               border-color var(--duration-fast) var(--ease-out);
   animation: cardSlideIn var(--duration-normal) var(--ease-spring);
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
 }
 
 @keyframes cardSlideIn {
@@ -37,46 +40,49 @@
   cursor: grabbing;
 }
 
-/* Drag Handle */
+/* Drag Handle - only visible on hover/desktop */
 .task-card::before {
   content: '⋮⋮';
   position: absolute;
-  left: var(--space-2);
+  left: var(--space-1);
   top: 50%;
   transform: translateY(-50%);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   opacity: 0;
   transition: opacity var(--duration-fast) var(--ease-out);
 }
 
-.task-card:hover::before {
-  opacity: 1;
+@media (hover: hover) {
+  .task-card:hover::before {
+    opacity: 0.6;
+  }
 }
 
 /* Card Header */
 .task-card__header {
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-2);
 }
 
 .task-card__title {
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
   line-height: var(--line-height-tight);
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--space-1);
   word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .task-card__description {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
   line-height: var(--line-height-normal);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-2);
 }
 
 /* Card Meta */
@@ -84,7 +90,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1);
   font-size: var(--font-size-xs);
 }
 
@@ -92,11 +98,12 @@
 .priority-badge {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--font-size-xs);
+  gap: 2px;
+  padding: 2px var(--space-2);
+  font-size: 10px;
   font-weight: var(--font-weight-medium);
   border-radius: var(--radius-sm);
+  white-space: nowrap;
 }
 
 .priority-badge--low {
@@ -118,11 +125,13 @@
 .task-card__due {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
+  gap: 2px;
+  padding: 2px var(--space-2);
   color: var(--color-text-tertiary);
   background-color: var(--color-surface-hover);
   border-radius: var(--radius-sm);
+  font-size: 10px;
+  white-space: nowrap;
 }
 
 .task-card__due--overdue {
@@ -139,24 +148,26 @@
 .task-card__tags {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--space-1);
+  margin-top: var(--space-2);
 }
 
 .tag {
   display: inline-flex;
   align-items: center;
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--font-size-xs);
+  padding: 2px var(--space-2);
+  font-size: 10px;
   font-weight: var(--font-weight-medium);
   border-radius: var(--radius-sm);
   background-color: var(--color-surface-hover);
   color: var(--color-text-secondary);
+  white-space: nowrap;
 }
 
 .tag::before {
   content: '#';
   opacity: 0.5;
-  margin-right: 2px;
+  margin-right: 1px;
 }
 
 /* Tag Colors (cycle through palette) */
@@ -194,9 +205,9 @@
 .task-card__subtasks {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--font-size-xs);
+  gap: 2px;
+  padding: 2px var(--space-2);
+  font-size: 10px;
   color: var(--color-text-tertiary);
   background-color: var(--color-surface-hover);
   border-radius: var(--radius-sm);

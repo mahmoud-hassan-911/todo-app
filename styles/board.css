@@ -2,37 +2,72 @@
  * Kanban Board Component
  */
 
+/* Mobile: horizontal scroll, each column ~80vw wide */
 .board {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: var(--space-4);
-  padding-bottom: var(--space-6);
+  display: flex;
+  gap: var(--space-3);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--space-4);
+  min-height: calc(100dvh - var(--header-height) - var(--quick-add-height) - var(--bottom-nav-height) - var(--space-9));
+}
+
+/* Hide scrollbar on mobile for cleaner look, but allow scroll */
+.board::-webkit-scrollbar {
+  height: 4px;
+}
+
+.board::-webkit-scrollbar-thumb {
+  background: var(--color-border-hover);
+  border-radius: var(--radius-full);
 }
 
 @media (min-width: 641px) {
   .board {
+    display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-5);
+    gap: var(--space-4);
+    overflow-x: visible;
+    scroll-snap-type: none;
+    min-height: auto;
   }
 }
 
 @media (min-width: 1025px) {
   .board {
     grid-template-columns: repeat(4, 1fr);
-    gap: var(--space-6);
+    gap: var(--space-5);
   }
 }
 
 .board__column {
   display: flex;
   flex-direction: column;
-  min-height: 400px;
+  min-height: 300px;
   background: var(--color-surface-glass);
   backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-md);
   transition: box-shadow var(--duration-fast) var(--ease-out);
+
+  /* Mobile: fixed width for horizontal scroll */
+  flex-shrink: 0;
+  width: 80vw;
+  max-width: 340px;
+  scroll-snap-align: center;
+}
+
+@media (min-width: 641px) {
+  .board__column {
+    width: auto;
+    max-width: none;
+    min-height: 350px;
+    scroll-snap-align: none;
+  }
 }
 
 .board__column:hover {
@@ -44,12 +79,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 
 .column__title {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   letter-spacing: -0.01em;
@@ -59,10 +95,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 24px;
-  height: 24px;
+  min-width: 22px;
+  height: 22px;
   padding: 0 var(--space-2);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-tertiary);
   background-color: var(--color-surface-hover);
@@ -72,9 +108,15 @@
 /* Column Content */
 .column__content {
   flex: 1;
-  padding: var(--space-3);
+  padding: var(--space-2);
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+@media (min-width: 641px) {
+  .column__content {
+    padding: var(--space-3);
+  }
 }
 
 /* Empty State */
@@ -83,7 +125,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 120px;
+  height: 100px;
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
   border: 2px dashed var(--color-border);
@@ -94,12 +136,12 @@
 /* Sortable Drag States */
 .sortable-ghost {
   opacity: 0.4;
-  transform: rotate(3deg);
+  transform: rotate(2deg);
 }
 
 .sortable-drag {
   opacity: 1 !important;
-  transform: scale(1.05) rotate(2deg);
+  transform: scale(1.04) rotate(1deg);
   box-shadow: var(--shadow-xl), var(--shadow-glow);
   cursor: grabbing !important;
 }

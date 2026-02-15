@@ -3,21 +3,28 @@
  */
 
 .palette {
-  max-width: 640px;
+  max-width: 560px;
   padding: 0;
   overflow: hidden;
 }
 
+@media (max-width: 640px) {
+  .palette {
+    max-width: 100%;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+}
+
 .palette__header {
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--color-border);
 }
 
 .palette__input {
   width: 100%;
-  padding: var(--space-3) 0;
+  padding: var(--space-2) 0;
   font-family: var(--font-family);
-  font-size: var(--font-size-lg);
+  font-size: 16px; /* Prevents iOS zoom */
   color: var(--color-text-primary);
   background: transparent;
   border: none;
@@ -29,12 +36,18 @@
 }
 
 .palette__results {
-  max-height: 400px;
+  max-height: 360px;
   overflow-y: auto;
 }
 
+@media (max-width: 640px) {
+  .palette__results {
+    max-height: 50vh;
+  }
+}
+
 .palette__empty {
-  padding: var(--space-8);
+  padding: var(--space-6);
   text-align: center;
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
@@ -54,6 +67,8 @@
   transition: background-color var(--duration-fast) var(--ease-out);
   width: 100%;
   text-align: left;
+  font-family: var(--font-family);
+  min-height: var(--touch-target-min);
 }
 
 .palette-item:hover,
@@ -63,7 +78,7 @@
 
 .palette-item__icon {
   flex-shrink: 0;
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-lg);
 }
 
 .palette-item__content {
@@ -72,14 +87,14 @@
 }
 
 .palette-item__title {
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
-  margin-bottom: var(--space-1);
+  margin-bottom: 2px;
 }
 
 .palette-item__description {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
   white-space: nowrap;
   overflow: hidden;
@@ -88,8 +103,14 @@
 
 .palette-item__shortcut {
   flex-shrink: 0;
-  display: flex;
-  gap: var(--space-1);
+  display: none;
+}
+
+@media (min-width: 641px) {
+  .palette-item__shortcut {
+    display: flex;
+    gap: var(--space-1);
+  }
 }
 
 .kbd {

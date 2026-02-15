@@ -125,8 +125,9 @@
   
   /* Layout */
   --container-max-width: 1280px;
-  --header-height: 4rem;
-  --quick-add-height: 4.5rem;
+  --header-height: 3.5rem;
+  --quick-add-height: 3.5rem;
+  --bottom-nav-height: 3.5rem;
   
   /* Touch Targets */
   --touch-target-min: 44px;
@@ -142,38 +143,45 @@
   --blur-lg: 16px;
 }
 
-/* Light Mode Theme */
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
-    --color-bg-primary: #ffffff;
-    --color-bg-secondary: #f8fafc;
-    --color-bg-tertiary: #e2e8f0;
-    --color-bg-elevated: #ffffff;
-    --color-bg-overlay: rgba(255, 255, 255, 0.95);
-    
-    --color-surface: #ffffff;
-    --color-surface-hover: #f8fafc;
-    --color-surface-glass: rgba(248, 250, 252, 0.8);
-    
-    --color-text-primary: #0f172a;
-    --color-text-secondary: #334155;
-    --color-text-tertiary: #64748b;
-    --color-text-muted: #94a3b8;
-    
-    --color-border: rgba(15, 23, 42, 0.1);
-    --color-border-hover: rgba(15, 23, 42, 0.2);
-    
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 
-                 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 
-                 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
-                 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  }
+/* ============================================
+   LIGHT MODE - Explicit data-theme="light"
+   ============================================ */
+[data-theme="light"] {
+  --color-bg-primary: #f8fafc;
+  --color-bg-secondary: #f1f5f9;
+  --color-bg-tertiary: #e2e8f0;
+  --color-bg-elevated: #ffffff;
+  --color-bg-overlay: rgba(248, 250, 252, 0.92);
+  
+  --color-surface: #ffffff;
+  --color-surface-hover: #f1f5f9;
+  --color-surface-glass: rgba(255, 255, 255, 0.75);
+  
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #334155;
+  --color-text-tertiary: #64748b;
+  --color-text-muted: #94a3b8;
+  
+  --color-border: rgba(15, 23, 42, 0.08);
+  --color-border-hover: rgba(15, 23, 42, 0.16);
+  
+  --color-accent: #0d9488;
+  --color-accent-hover: #0f766e;
+  --color-accent-light: rgba(13, 148, 136, 0.08);
+  --color-accent-glow: rgba(13, 148, 136, 0.2);
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 
+               0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 
+               0 4px 6px -2px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 
+               0 10px 10px -5px rgba(0, 0, 0, 0.03);
 }
 
-/* Manual Dark Mode Override */
+/* ============================================
+   DARK MODE - Explicit data-theme="dark"
+   ============================================ */
 [data-theme="dark"] {
   --color-bg-primary: #0f172a;
   --color-bg-secondary: #1e293b;
