@@ -157,7 +157,7 @@ onAuthStateChanged(auth, (user) => {
     state.user = user;
     elements.app.hidden = false;
     hideAuthModal();
-    initializeApp();
+    startApp();
   } else {
     state.user = null;
     elements.app.hidden = true;
@@ -170,7 +170,7 @@ onAuthStateChanged(auth, (user) => {
  */
 
 // Initialize app after auth
-function initializeApp() {
+function startApp() {
   loadTasks();
   renderCurrentView();
   initializeSortable();
