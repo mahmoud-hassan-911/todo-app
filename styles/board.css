@@ -1,0 +1,114 @@
+/**
+ * Kanban Board Component
+ */
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  padding-bottom: var(--space-6);
+}
+
+@media (min-width: 641px) {
+  .board {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-5);
+  }
+}
+
+@media (min-width: 1025px) {
+  .board {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-6);
+  }
+}
+
+.board__column {
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
+  background: var(--color-surface-glass);
+  backdrop-filter: blur(var(--blur-sm));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  transition: box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.board__column:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+/* Column Header */
+.column__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.column__title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.column__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+  background-color: var(--color-surface-hover);
+  border-radius: var(--radius-full);
+}
+
+/* Column Content */
+.column__content {
+  flex: 1;
+  padding: var(--space-3);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Empty State */
+.column__content:empty::after {
+  content: 'Drop tasks here';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  margin: var(--space-2);
+}
+
+/* Sortable Drag States */
+.sortable-ghost {
+  opacity: 0.4;
+  transform: rotate(3deg);
+}
+
+.sortable-drag {
+  opacity: 1 !important;
+  transform: scale(1.05) rotate(2deg);
+  box-shadow: var(--shadow-xl), var(--shadow-glow);
+  cursor: grabbing !important;
+}
+
+.sortable-chosen {
+  cursor: grabbing;
+}
+
+/* Drag Placeholder */
+.column__content.sortable-drag-over {
+  background-color: var(--color-accent-light);
+}

@@ -1,0 +1,27 @@
+{
+  "name": "todo-pwa-firebase",
+  "version": "1.0.0",
+  "description": "Production-ready PWA TODO app with Firebase Auth + Firestore",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report",
+    "serve": "python -m http.server 8080",
+    "install:playwright": "npx playwright install --with-deps"
+  },
+  "keywords": [
+    "pwa",
+    "todo",
+    "firebase",
+    "firestore",
+    "realtime",
+    "kanban"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}

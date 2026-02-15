@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="A modern, production-ready PWA TODO app with Firebase sync">
+    <meta name="theme-color" content="#0f172a">
+    <title>TODO App</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles/tokens.css">
+    <link rel="stylesheet" href="styles/base.css">
+    <link rel="stylesheet" href="styles/header.css">
+    <link rel="stylesheet" href="styles/auth.css">
+    <link rel="stylesheet" href="styles/board.css">
+    <link rel="stylesheet" href="styles/card.css">
+    <link rel="stylesheet" href="styles/modal.css">
+    <link rel="stylesheet" href="styles/toast.css">
+    <link rel="stylesheet" href="styles/palette.css">
+    <link rel="stylesheet" href="styles/list.css">
+    <link rel="stylesheet" href="styles/calendar.css">
+</head>
+<body>
+    <!-- Offline Banner -->
+    <div id="offline-banner" class="offline-banner" role="alert" aria-live="assertive" hidden>
+        <span class="offline-banner__icon">⚠️</span>
+        <span class="offline-banner__text">Offline — writes are disabled. Changes will not be saved.</span>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+        <div class="modal__overlay"></div>
+        <div class="modal__content auth-modal">
+            <div class="auth-modal__logo">
+                <svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true">
+                    <rect x="8" y="8" width="32" height="32" rx="8" fill="currentColor" opacity="0.2"/>
+                    <path d="M16 20h16v2H16zm0 6h12v2H16z" fill="currentColor"/>
+                </svg>
+            </div>
+            <h2 id="auth-title" class="auth-modal__title">Welcome to TODO</h2>
+            <p class="auth-modal__subtitle">Sign in to sync your tasks</p>
+            
+            <form id="auth-form" class="auth-form">
+                <div class="form-group">
+                    <label for="auth-email" class="form-label">Email</label>
+                    <input 
+                        type="email" 
+                        id="auth-email" 
+                        class="form-input" 
+                        placeholder="you@example.com"
+                        required
+                        autocomplete="email"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="auth-password" class="form-label">Password</label>
+                    <input 
+                        type="password" 
+                        id="auth-password" 
+                        class="form-input" 
+                        placeholder="••••••••"
+                        required
+                        autocomplete="current-password"
+                        minlength="6"
+                    >
+                </div>
+                
+                <div id="auth-error" class="auth-error" role="alert" hidden></div>
+                
+                <div class="auth-actions">
+                    <button type="submit" id="login-btn" class="btn btn--primary">
+                        Sign In
+                    </button>
+                    <button type="button" id="signup-btn" class="btn btn--secondary">
+                        Create Account
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app" class="app" hidden>
+        <!-- Header -->
+        <header class="header">
+            <div class="header__container">
+                <div class="header__left">
+                    <svg class="header__logo" viewBox="0 0 32 32" width="32" height="32" aria-hidden="true">
+                        <rect x="4" y="4" width="24" height="24" rx="6" fill="currentColor" opacity="0.2"/>
+                        <path d="M10 14h12v1.5H10zm0 4h8v1.5h-8z" fill="currentColor"/>
+                    </svg>
+                    <h1 class="header__title">TODO</h1>
+                </div>
+                
+                <nav class="header__nav" role="navigation" aria-label="View navigation">
+                    <button class="nav-btn" data-view="kanban" aria-pressed="true">
+                        <span class="nav-btn__icon">📋</span>
+                        <span class="nav-btn__label">Kanban</span>
+                    </button>
+                    <button class="nav-btn" data-view="list" aria-pressed="false">
+                        <span class="nav-btn__icon">📝</span>
+                        <span class="nav-btn__label">List</span>
+                    </button>
+                    <button class="nav-btn" data-view="calendar" aria-pressed="false">
+                        <span class="nav-btn__icon">📅</span>
+                        <span class="nav-btn__label">Calendar</span>
+                    </button>
+                </nav>
+                
+                <div class="header__actions">
+                    <button id="theme-toggle" class="icon-btn" aria-label="Toggle theme">
+                        <span class="theme-icon theme-icon--light">☀️</span>
+                        <span class="theme-icon theme-icon--dark">🌙</span>
+                    </button>
+                    <button id="logout-btn" class="btn btn--ghost" aria-label="Sign out">
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Quick Add -->
+        <div class="quick-add">
+            <div class="quick-add__container">
+                <input 
+                    type="text" 
+                    id="quick-input" 
+                    class="quick-add__input" 
+                    placeholder="Add task... (e.g., Fix API tomorrow 3pm #backend !high)"
+                    aria-label="Quick add task"
+                >
+                <button id="quick-add-btn" class="quick-add__btn" aria-label="Add task">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Kanban View -->
+            <div id="kanban-view" class="view view--kanban">
+                <div class="board">
+                    <div class="board__column" data-status="backlog">
+                        <div class="column__header">
+                            <h2 class="column__title">Backlog</h2>
+                            <span class="column__count">0</span>
+                        </div>
+                        <div class="column__content" data-sortable="backlog"></div>
+                    </div>
+                    
+                    <div class="board__column" data-status="today">
+                        <div class="column__header">
+                            <h2 class="column__title">Today</h2>
+                            <span class="column__count">0</span>
+                        </div>
+                        <div class="column__content" data-sortable="today"></div>
+                    </div>
+                    
+                    <div class="board__column" data-status="inprogress">
+                        <div class="column__header">
+                            <h2 class="column__title">In Progress</h2>
+                            <span class="column__count">0</span>
+                        </div>
+                        <div class="column__content" data-sortable="inprogress"></div>
+                    </div>
+                    
+                    <div class="board__column" data-status="done">
+                        <div class="column__header">
+                            <h2 class="column__title">Done</h2>
+                            <span class="column__count">0</span>
+                        </div>
+                        <div class="column__content" data-sortable="done"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- List View -->
+            <div id="list-view" class="view view--list" hidden>
+                <div class="list-container">
+                    <div id="list-content" class="list"></div>
+                </div>
+            </div>
+
+            <!-- Calendar View -->
+            <div id="calendar-view" class="view view--calendar" hidden>
+                <div class="calendar-container">
+                    <div class="calendar-header">
+                        <button id="prev-month" class="icon-btn" aria-label="Previous month">←</button>
+                        <h2 id="calendar-title" class="calendar-title"></h2>
+                        <button id="next-month" class="icon-btn" aria-label="Next month">→</button>
+                    </div>
+                    <div id="calendar-grid" class="calendar"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Task Detail Modal -->
+    <div id="task-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="task-modal-title" hidden>
+        <div class="modal__overlay"></div>
+        <div class="modal__content task-modal">
+            <div class="task-modal__header">
+                <input 
+                    type="text" 
+                    id="task-title-input" 
+                    class="task-modal__title-input" 
+                    placeholder="Task title"
+                    aria-label="Task title"
+                >
+                <button class="icon-btn task-modal__close" aria-label="Close">×</button>
+            </div>
+            
+            <div class="task-modal__body">
+                <div class="form-group">
+                    <label for="task-description" class="form-label">Description</label>
+                    <textarea 
+                        id="task-description" 
+                        class="form-textarea" 
+                        placeholder="Add details..."
+                        rows="3"
+                    ></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="task-status" class="form-label">Status</label>
+                        <select id="task-status" class="form-select">
+                            <option value="backlog">Backlog</option>
+                            <option value="today">Today</option>
+                            <option value="inprogress">In Progress</option>
+                            <option value="done">Done</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="task-priority" class="form-label">Priority</label>
+                        <select id="task-priority" class="form-select">
+                            <option value="low">Low</option>
+                            <option value="normal">Normal</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="task-duedate" class="form-label">Due Date</label>
+                    <input type="date" id="task-duedate" class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <label for="task-tags" class="form-label">Tags</label>
+                    <input 
+                        type="text" 
+                        id="task-tags" 
+                        class="form-input" 
+                        placeholder="Comma-separated (e.g., backend, urgent)"
+                    >
+                </div>
+                
+                <div class="subtasks">
+                    <h3 class="subtasks__title">Subtasks</h3>
+                    <div id="subtasks-list" class="subtasks__list"></div>
+                    <button id="add-subtask-btn" class="btn btn--ghost btn--small">+ Add Subtask</button>
+                </div>
+            </div>
+            
+            <div class="task-modal__footer">
+                <button id="delete-task-btn" class="btn btn--danger">Delete</button>
+                <button id="save-task-btn" class="btn btn--primary">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Command Palette -->
+    <div id="command-palette" class="modal" role="dialog" aria-modal="true" aria-labelledby="palette-title" hidden>
+        <div class="modal__overlay"></div>
+        <div class="modal__content palette">
+            <div class="palette__header">
+                <input 
+                    type="text" 
+                    id="palette-input" 
+                    class="palette__input" 
+                    placeholder="Type a command or search..."
+                    aria-label="Command palette"
+                    autocomplete="off"
+                >
+            </div>
+            <div id="palette-results" class="palette__results" role="listbox"></div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container" role="region" aria-live="polite" aria-label="Notifications"></div>
+
+    <!-- Scripts -->
+    <!-- SortableJS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.1/Sortable.min.js"></script>
+    
+    <!-- Firebase SDK v9+ (modular) -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>
