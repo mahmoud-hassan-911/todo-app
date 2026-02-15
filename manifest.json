@@ -2,7 +2,8 @@
   "name": "TODO - Firebase PWA",
   "short_name": "TODO",
   "description": "A modern, production-ready PWA TODO app with Firebase sync",
-  "start_url": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
@@ -27,7 +28,7 @@
       "name": "Add Task",
       "short_name": "Add",
       "description": "Quickly add a new task",
-      "url": "/?action=add",
+      "url": "./?action=add",
       "icons": [{ "src": "icons/icon-128.png", "sizes": "128x128" }]
     }
   ]
