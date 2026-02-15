@@ -418,7 +418,7 @@ todo-app/
 │
 ├── icons/
 │   ├── icon.svg                # Vector icon
-│   ├── icon-192.png            # PWA icon 192x192
+│   ├── icon-128.png            # PWA icon 128x128
 │   └── icon-512.png            # PWA icon 512x512
 │
 ├── tests/

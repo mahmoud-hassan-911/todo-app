@@ -131,7 +131,7 @@ The app includes an SVG icon. For proper PWA support, convert to PNG:
 ### Using Online Tool (Easiest)
 1. Go to https://convertio.co/svg-png/
 2. Upload `icons/icon.svg`
-3. Download and rename to `icon-192.png` and `icon-512.png`
+3. Download and rename to `icon-128.png` and `icon-512.png`
 
 ### Using ImageMagick (Command Line)
 ```bash
@@ -140,14 +140,14 @@ The app includes an SVG icon. For proper PWA support, convert to PNG:
 # On Ubuntu: sudo apt install imagemagick
 
 # Convert
-convert icons/icon.svg -resize 192x192 icons/icon-192.png
+convert icons/icon.svg -resize 128x128 icons/icon-128.png
 convert icons/icon.svg -resize 512x512 icons/icon-512.png
 ```
 
 ### Using Inkscape
 1. Open `icons/icon.svg` in Inkscape
 2. File → Export PNG Image
-3. Set Width/Height to 192, export as `icon-192.png`
+3. Set Width/Height to 128, export as `icon-128.png`
 4. Repeat for 512x512 → `icon-512.png`
 
 ---

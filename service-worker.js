@@ -21,7 +21,7 @@ const STATIC_ASSETS = [
   './styles/palette.css',
   './styles/list.css',
   './styles/calendar.css',
-  './icons/icon-192.png',
+  './icons/icon-128.png',
   './icons/icon-512.png'
 ];
 

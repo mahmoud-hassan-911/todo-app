@@ -110,7 +110,7 @@ A complete, production-ready PWA TODO application with Firebase backend, realtim
 - Service worker registration
 - Static asset caching
 - Installable
-- 192x192 and 512x512 icons
+- 128x128 and 512x512 icons
 - Offline app shell
 - Add to home screen
 

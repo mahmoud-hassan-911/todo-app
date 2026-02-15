@@ -50,7 +50,7 @@ All styles modular and organized:
 ### ✅ Assets
 
 - [x] `icons/icon.svg` - Vector icon source
-- [x] `icons/icon-192.png` - PWA icon 192x192
+- [x] `icons/icon-128.png` - PWA icon 128x128
 - [x] `icons/icon-512.png` - PWA icon 512x512
 
 ### ✅ Tests (7 Test Files)
@@ -248,7 +248,7 @@ Comprehensive E2E test coverage:
 
 #### Assets
 - [x] SVG icon source
-- [x] PNG icons (192, 512)
+- [x] PNG icons (128, 512)
 - [x] Vector SVG logo
 
 ---
@@ -362,7 +362,7 @@ All acceptance criteria from requirements met:
 
 ### Icon Files
 - ⚠️ Icon PNG files are currently duplicates of SVG
-- 📝 **Action Required:** Convert `icon.svg` to proper PNG files at 192x192 and 512x512
+- 📝 **Action Required:** Convert `icon.svg` to proper PNG files at 128x128 and 512x512
 - 📝 Instructions provided in SETUP.md
 - ℹ️ App works with SVG, but proper PNGs recommended for best PWA compliance
 
@@ -463,7 +463,7 @@ Based on Lighthouse audit of similar apps:
 
 4. **Convert Icons (Optional but Recommended):**
    - Use online tool or ImageMagick
-   - Create proper 192x192 and 512x512 PNGs
+   - Create proper 128x128 and 512x512 PNGs
 
 5. **Deploy:**
    - Follow DEPLOYMENT.md
